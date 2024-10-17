@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Çeviri Uygulaması</title>
+    <style>
+        /* Basit stil ayarları */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            margin-top: 10px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Türkçe-İngilizce Çeviri</h1>
+
+    <!-- Kullanıcının JSON dosyasını seçmesi için bir dropdown -->
+    <label for="jsonSelector">Bir JSON dosyası seçin:</label>
+    <select id="jsonSelector">
+        <option value="word1.json">of_ve_s_Iyelik_cumleleri</option>
+        <option value="sentences3.json">sentences3.json</option> 
+        <option value="sentences3.json">sentences3.json</option> 
+        <option value="sentences3.json">sentences3.json</option> 
+        
+        
+        <!-- Daha fazla dosya ekleyebilirsin -->
+    </select>
+    <button onclick="loadSelectedJSON()">Yükle</button>
+
+    <p id="turkishSentence">Türkçe cümle: </p>
+    
+    <textarea id="translationInput" rows="4" placeholder="İngilizce çeviriyi buraya yazın"></textarea>
+    
+    <br>
+    <button onclick="checkTranslation()">Çeviriyi Kontrol Et</button>
+    <button onclick="nextSentence()">Sonraki Cümle</button>
+    <button onclick="markAsCorrect()">Doğru Yaptım</button>
+    <br><br>
+    <button onclick="resetData()">Verileri Sıfırla</button>
+    <p id="result"></p>
+
+    <script>
+        let sentences = [];
+        let correctIndexes = JSON.parse(localStorage.getItem('correctIndexes')) || [];
+        let currentIndex = 0;
+
+        // Kullanıcının seçtiği JSON dosyasını yükleme fonksiyonu
+        function loadSelectedJSON() {
+            const selectedFile = document.getElementById('jsonSelector').value;
+
+            fetch(selectedFile)
+                .then(response => response.json())
+                .then(data => {
+                    sentences = data;
+                    correctIndexes = JSON.parse(localStorage.getItem('correctIndexes')) || []; // Doğru bilinen cümleler
+                    currentIndex = 0; // Baştan başla
+                    findNextSentence();
+                    showSentence(); // İlk cümleyi göster
+                    document.getElementById("translationInput").disabled = false; // Textarea'yı aktif et
+                })
+                .catch(error => {
+                    console.error('JSON dosyası yüklenirken hata oluştu:', error);
+                });
+        }
+
+        // Doğru bilinen cümleleri atlayarak başla
+        function findNextSentence() {
+            while (correctIndexes.includes(currentIndex) && currentIndex < sentences.length) {
+                currentIndex++;
+            }
+        }
+
+        // İlk cümleyi seçelim ve ekrana yazdıralım
+        function showSentence() {
+            if (currentIndex >= sentences.length) {
+                document.getElementById("turkishSentence").innerText = "Tebrikler! Tüm cümleleri tamamladınız.";
+                document.getElementById("translationInput").disabled = true;
+                return;
+            }
+
+            const currentSentence = sentences[currentIndex];
+            document.getElementById("turkishSentence").innerText = `Türkçe cümle: ${currentSentence.turkish}`;
+            document.getElementById("translationInput").value = ""; // Input'u temizle
+            document.getElementById("result").innerText = ""; // Sonucu temizle
+        }
+
+        // Çeviriyi kontrol eden fonksiyon
+        function checkTranslation() {
+            const userTranslation = document.getElementById("translationInput").value.trim();
+            const correctTranslation = sentences[currentIndex].english;
+
+            if (userTranslation.toLowerCase() === correctTranslation.toLowerCase()) {
+                document.getElementById("result").innerText = "Doğru!";
+                correctIndexes.push(currentIndex); // Doğru bilinen cümleyi kaydet
+                localStorage.setItem('correctIndexes', JSON.stringify(correctIndexes)); // localStorage'a kaydet
+            } else {
+                document.getElementById("result").innerText = `Yanlış! Doğru cevap: ${correctTranslation}`;
+            }
+        }
+
+        // Sonraki cümleye geçen fonksiyon
+        function nextSentence() {
+            currentIndex++;
+            findNextSentence();
+            showSentence(); // Yeni cümleyi göster
+        }
+
+        // Kullanıcı doğru yaptığını düşündüğünde bu fonksiyona basacak
+        function markAsCorrect() {
+            correctIndexes.push(currentIndex); // Doğru bilinen cümleyi kaydet
+            localStorage.setItem('correctIndexes', JSON.stringify(correctIndexes)); // LocalStorage'a kaydet
+            nextSentence(); // Bir sonraki cümleye geç
+        }
+
+        // LocalStorage'daki verileri sıfırlayan fonksiyon
+        function resetData() {
+            localStorage.removeItem('correctIndexes'); // LocalStorage'daki correctIndexes verisini temizle
+            correctIndexes = []; // JavaScript değişkenini de sıfırla
+            currentIndex = 0; // İlk cümleden başla
+            showSentence(); // İlk cümleyi tekrar göster
+            document.getElementById("translationInput").disabled = false; // Giriş alanını tekrar aktif yap
+            document.getElementById("result").innerText = "Veriler sıfırlandı, baştan başlıyorsunuz!";
+        }
+    </script>
+</body>
+</html>
